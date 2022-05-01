@@ -36,13 +36,18 @@ type Value
 form values into a List of key values.
 
     view model =
+        -- form with `id` attribute
         form [ id "edituserform123" ]
+            -- fields with `name` attribute
             []
 
     update msg model =
         ( { model
             | formFields =
-                NativeForm.decoder "edituserform123" model.document
+                -- decode model.document to obtain a list of
+                -- form field values anytime
+                model.document
+                    |> Json.Decode.decodeValue (NativeForm.decoder "edituserform123")
                     |> Result.withDefault []
           }
         , Cmd.none
