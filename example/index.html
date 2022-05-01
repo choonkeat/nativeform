@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@exampledev/new.css@1.1.2/new.min.css" />
+    <title>NativeForm</title>
+    <style>
+        .error { color: red; }
+        ul { font-size: 0.8em; }
+        small { display: block; margin-top: -0.5em; font-size: 0.7em; }
+        label.checkbox, label.radio { display: block; }
+        pre { white-space: pre-wrap; }
+        input:invalid { border-color: red; }
+        input[type="checkbox"], input[type="radio"] {
+            margin-right: 0.5em;
+        }
+        input[type="color"] {
+            padding: initial;
+            appearance: color-well !important;
+            width: 44px !important;
+            height: 23px !important;
+            outline-style: none !important;
+        }
+
+        .desktop-hint {
+            display: block;
+            font-size: small;
+            margin-bottom: 1rem;
+        }
+        @media screen and (min-width: 768px) {
+            .desktop-hint {
+                display: none;
+            }
+            #debugOutput {
+                position: fixed;
+                top: 2rem;
+                right: 5rem;
+                width: 50%;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="myapp"></div>
+    <script src="build/main.js"></script>
+    <script>
+        var app = Elm.Main.init({
+            node: document.getElementById('myapp'),
+            flags: {
+                document: document
+            }
+        })
+    </script>
+</body>
+</html>
