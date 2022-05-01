@@ -24,7 +24,7 @@ names are preserved. So we are preserving them here too.
 decoder : String -> Json.Decode.Decoder (List ( String, Value ))
 decoder formId =
     Json.Decode.at [ "forms", formId, "elements" ] (decodeArrayish decodeFormElement)
-        |> Json.Decode.map (List.concat >> List.reverse)
+        |> Json.Decode.map List.concat
 
 
 {-| Replacement for when the Array-ish value is not a real Array :. we cannot use `Json.Decode.list`
@@ -42,18 +42,18 @@ they aren't array and cannot be decoded with `Json.Decode.list`
 decodeArrayish : (Int -> Json.Decode.Decoder a) -> Json.Decode.Decoder (List a)
 decodeArrayish indexedDecoder =
     Json.Decode.field "length" Json.Decode.int
-        |> Json.Decode.andThen (decodeArrayish_help indexedDecoder)
+        |> Json.Decode.andThen (decodeArrayish_help indexedDecoder 0)
 
 
-decodeArrayish_help : (Int -> Json.Decode.Decoder a) -> Int -> Json.Decode.Decoder (List a)
-decodeArrayish_help indexedDecoder length =
-    if length <= 0 then
+decodeArrayish_help : (Int -> Json.Decode.Decoder a) -> Int -> Int -> Json.Decode.Decoder (List a)
+decodeArrayish_help indexedDecoder index length =
+    if index >= length then
         Json.Decode.succeed []
 
     else
         Json.Decode.map2 (::)
-            (indexedDecoder (length - 1))
-            (decodeArrayish_help indexedDecoder (length - 1))
+            (indexedDecoder index)
+            (decodeArrayish_help indexedDecoder (index + 1) length)
 
 
 {-| Primary decoder for each item in HTMLFormControlsCollection
