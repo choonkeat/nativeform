@@ -3,9 +3,30 @@ module NativeForm exposing
     , decoder
     )
 
+{-| Using browser `document` to decode the current values of forms at anytime.
+
+
+## Types
+
+@docs Value
+
+
+## Helper
+
+@docs decoder
+
+-}
+
 import Json.Decode
 
 
+{-| Values from form fields are either `String` or `List String`
+
+e.g. values for `input [ type_ "number" ] []` will still be a `String` since
+and is entirely up to your application to convert and validate it with
+`String.toInt` or `String.toFloat`
+
+-}
 type Value
     = OneValue String
     | ManyValues (List String)
@@ -14,7 +35,20 @@ type Value
 {-| Given the `id` attribute of a `<form>` tag, we can decode the current
 form values into a List of key values.
 
-NOTE: We are returning a List instead of Dict because on form submit, duplicate
+    view model =
+        form [ id "edituserform123" ]
+            []
+
+    update msg model =
+        ( { model
+            | formFields =
+                NativeForm.decoder "edituserform123" model.document
+                    |> Result.withDefault []
+          }
+        , Cmd.none
+        )
+
+NOTE: We are returning a `List` instead of `Dict` because on form submit, duplicate
 names are preserved. So we are preserving them here too.
 
 <https://developer.mozilla.org/en-US/docs/Web/API/Document/forms>

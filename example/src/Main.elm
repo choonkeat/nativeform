@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, a, code, div, form, h3, input, label, option, p, pre, select, span, table, td, text, textarea, th, tr)
+import Html exposing (Html, a, br, code, div, form, h3, input, label, option, p, pre, select, span, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (class, href, id, max, min, multiple, name, placeholder, target, type_, value)
 import Html.Events exposing (on, onClick)
 import Json.Decode
@@ -49,19 +49,18 @@ view model =
         [ h3 [] [ text "Input" ]
         , span [ class "desktop-hint" ] [ text "output is below" ]
         , form
-            [ id "form123"
+            [ -- 1.
+              -- this `id` must be set in order for `NativeForm.decoder`
+              -- to extract form values from the correct form
+              id "form123"
             , on "change" (Json.Decode.succeed (OnFormChange "form123"))
             ]
             [ p []
-                [ label [] [ text "Input text" ]
-                , p [] [ input [ name "mytext", type_ "text" ] [] ]
-                ]
-            , p []
-                [ label [] [ text "Textarea" ]
-                , p [] [ textarea [ name "mytextarea" ] [] ]
-                ]
-            , p []
                 [ label [] [ text "Select one" ]
+
+                -- 1.
+                -- must give your form fields a `name`
+                -- but you do not have to hook up `onInput` anymore
                 , p []
                     [ select [ name "myselect" ]
                         [ option [] [ text "Very good" ]
@@ -89,11 +88,22 @@ view model =
                     ]
                 ]
             , p []
+                [ label [] [ text "Input text" ]
+                , p [] [ input [ name "mytext", type_ "text" ] [] ]
+                ]
+            , p []
+                [ label [] [ text "Textarea" ]
+                , p [] [ textarea [ name "mytextarea" ] [] ]
+                ]
+            , p []
                 [ label [] [ text "Input email" ]
                 , p [] [ input [ name "myemail", type_ "email" ] [] ]
                 ]
             , p []
                 [ label [] [ text "Input number" ]
+
+                -- 1.
+                -- values from `number` fields are still `String`
                 , p [] [ input [ name "mynumber", type_ "number" ] [] ]
                 ]
             , p []
@@ -106,10 +116,17 @@ view model =
                 ]
             , p []
                 [ label [] [ text "Input range" ]
+
+                -- values from `range` fields are still `String`
                 , p [] [ input [ name "myrange", type_ "range", Html.Attributes.min "1", Html.Attributes.max "9" ] [] ]
                 ]
             , p []
                 [ label [] [ text "Input reset" ]
+
+                -- Doesn't do anything by default
+                -- Even `onClick OnFormChange` will not do what we need
+                -- since the Msg is fired _before_ the form values are
+                -- reset in the browser.
                 , p [] [ input [ name "myreset", type_ "reset" ] [] ]
                 ]
             , p []
@@ -142,6 +159,8 @@ view model =
                 ]
             , p []
                 [ label [] [ text "Input file" ]
+
+                -- Does not handle `input[file]` values in any useful manner
                 , p [] [ input [ name "myfile", type_ "file" ] [] ]
                 ]
             , p []
@@ -166,14 +185,29 @@ view model =
             , p []
                 [ text "This form is managed by Elm with only "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/262ded2d754c2c7697b87ff52c7bdfb6abde0f80/example/src/Main.elm#L23-L24"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L23-L24"
                     , target "_blank"
                     ]
                     [ code [] [ text "type Msg = OnFormChange String" ] ]
+                , text "."
+                ]
+            , p []
+                [ text "And triggered by "
+                , a
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L56"
+                    , target "_blank"
+                    ]
+                    [ code [] [ text "form [ on \"change\" ... ]" ] ]
+                , text "; you can wire up a different event handler in your app instead."
+                ]
+            , p []
+                [ text "See more at "
+                , a [ href "https://github.com/choonkeat/nativeform" ] [ text "Github" ]
+                , text " or "
+                , a [ href "https://package.elm-lang.org/packages/choonkeat/nativeform/latest" ] [ text "Package doc" ]
                 ]
             , viewDecodedForm model.decodedForm
             ]
-        , a [ href "https://github.com/choonkeat/nativeform" ] [ text "Github" ]
         ]
 
 
