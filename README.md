@@ -39,3 +39,5 @@ Checkout the demo at https://nativeform.netlify.app and its source code at [exam
         List ( String, NativeForm.Value )
         -> Result String UserInfo
     ```
+
+    See a [sample `parseDontValidate` implementation](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L344)

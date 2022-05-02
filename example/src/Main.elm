@@ -1,12 +1,16 @@
 module Main exposing (..)
 
 import Browser
-import Html exposing (Html, a, br, code, div, form, h3, input, label, option, p, pre, select, span, table, td, text, textarea, th, tr)
+import Dict exposing (Dict)
+import Html exposing (Html, a, br, code, div, form, h3, h4, input, label, option, p, pre, select, span, table, td, text, textarea, th, tr)
 import Html.Attributes exposing (class, href, id, max, min, multiple, name, placeholder, target, type_, value)
 import Html.Events exposing (on, onClick)
 import Json.Decode
 import Json.Encode
 import NativeForm
+import Task
+import Time
+import Url
 
 
 type alias Flags =
@@ -17,11 +21,13 @@ type alias Flags =
 type alias Model =
     { document : Json.Encode.Value
     , decodedForm : List ( String, NativeForm.Value )
+    , tz : Time.Zone
     }
 
 
 type Msg
     = OnFormChange String
+    | GotTimezone Time.Zone
 
 
 main : Program Flags Model Msg
@@ -38,8 +44,9 @@ init : Flags -> ( Model, Cmd Msg )
 init flags =
     ( { document = flags.document
       , decodedForm = []
+      , tz = Time.utc
       }
-    , Cmd.none
+    , Task.perform GotTimezone Time.here
     )
 
 
@@ -138,10 +145,6 @@ view model =
                 , p [] [ input [ name "mytel", type_ "tel" ] [] ]
                 ]
             , p []
-                [ label [] [ text "Input text" ]
-                , p [] [ input [ name "mytext", type_ "text" ] [] ]
-                ]
-            , p []
                 [ label [] [ text "Input url" ]
                 , p [] [ input [ name "myurl", type_ "url" ] [] ]
                 ]
@@ -185,7 +188,7 @@ view model =
             , p []
                 [ text "This form is managed by Elm with only "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L23-L24"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L28-L29"
                     , target "_blank"
                     ]
                     [ code [] [ text "type Msg = OnFormChange String" ] ]
@@ -194,7 +197,7 @@ view model =
             , p []
                 [ text "And triggered by "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L56"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L63"
                     , target "_blank"
                     ]
                     [ code [] [ text "form [ on \"change\" ... ]" ] ]
@@ -206,13 +209,13 @@ view model =
                 , text " or "
                 , a [ href "https://package.elm-lang.org/packages/choonkeat/nativeform/latest" ] [ text "Package doc" ]
                 ]
-            , viewDecodedForm model.decodedForm
+            , viewDecodedForm model.tz model.decodedForm
             ]
         ]
 
 
-viewDecodedForm : List ( String, NativeForm.Value ) -> Html msg
-viewDecodedForm list =
+viewDecodedForm : Time.Zone -> List ( String, NativeForm.Value ) -> Html msg
+viewDecodedForm tz list =
     let
         hasValue ( _, v ) =
             case v of
@@ -230,12 +233,22 @@ viewDecodedForm list =
                 [ th [] [ text k ]
                 , td [] [ text (Debug.toString v) ]
                 ]
+
+        parsedInfo =
+            parseDontValidate tz list
     in
-    table []
-        (list
-            |> List.filter hasValue
-            |> List.map viewRow
-        )
+    div []
+        [ h4 [] [ text "Parsed info" ]
+        , pre []
+            [ text (Debug.toString parsedInfo)
+            ]
+        , h4 [] [ text "Raw key values" ]
+        , table []
+            (list
+                |> List.filter hasValue
+                |> List.map viewRow
+            )
+        ]
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -250,7 +263,128 @@ update msg model =
             , Cmd.none
             )
 
+        GotTimezone tz ->
+            ( { model | tz = tz }
+            , Cmd.none
+            )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.none
+
+
+{-| a lookup table of fieldname and error message
+-}
+type alias Errors =
+    Dict String String
+
+
+{-| this is the desired record type we want from our form
+-}
+type alias ParsedInfo =
+    { -- myselect : Rating
+      -- , myselectmulti : Characteristic
+      -- , mycheckbox : Hobbies
+      mytext : String
+
+    -- , mytextarea : String
+    -- , myemail : Email
+    -- , mynumber : Maybe Int
+    -- , myradio : Location
+    -- , myrange : Int
+    -- , mysearch : String
+    -- , mytel : String
+    -- , myurl : Url.Url
+    -- , mycolor : Color
+    -- , mydate : Time.Posix
+    -- , mydatetimelocal : Time.Posix
+    -- , mymonth : { year : Int, month : Time.Month }
+    -- , mypassword : String
+    -- , mytime : { hour : Int, minutes : Int }
+    }
+
+
+type Rating
+    = VeryGood
+    | Good
+    | Okay
+
+
+type Characteristic
+    = Pure
+    | Type
+    | Functional
+
+
+type Hobbies
+    = Soccer
+    | Basketball
+    | Crochet
+
+
+type Email
+    = Email String String
+
+
+type Location
+    = Here
+    | There
+    | Everywhere
+
+
+type alias Color =
+    { red : Int
+    , green : Int
+    , blue : Int
+    , alpha : Int
+    }
+
+
+parseDontValidate : Time.Zone -> List ( String, NativeForm.Value ) -> Result Errors ParsedInfo
+parseDontValidate tz list =
+    let
+        dict =
+            NativeForm.valuesDict list
+    in
+    Ok ParsedInfo
+        |> field "mytext" dict nonEmptyString
+
+
+{-| Pipe friendly builder of values that accumulates errors
+-}
+field :
+    comparable
+    -> Dict comparable v
+    -> (Maybe v -> Result err a)
+    -> Result (Dict comparable err) (a -> b)
+    -> Result (Dict comparable err) b
+field k dict fn result =
+    case ( result, fn (Dict.get k dict) ) of
+        ( Err errs, Err newerrs ) ->
+            Err (Dict.insert k newerrs errs)
+
+        ( Ok _, Err newerrs ) ->
+            Err (Dict.fromList [ ( k, newerrs ) ])
+
+        ( Err errs, Ok _ ) ->
+            Err errs
+
+        ( Ok res, Ok a ) ->
+            Ok (res a)
+
+
+nonEmptyString : Maybe NativeForm.Value -> Result String String
+nonEmptyString maybeV =
+    case Maybe.withDefault (NativeForm.OneValue "") maybeV of
+        NativeForm.OneValue "" ->
+            Err "cannot be empty"
+
+        NativeForm.OneValue s ->
+            Ok s
+
+        NativeForm.ManyValues [] ->
+            Err "cannot be empty"
+
+        NativeForm.ManyValues list ->
+            Ok (String.join ", " list)
