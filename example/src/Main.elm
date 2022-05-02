@@ -348,19 +348,18 @@ parseDontValidate tz list =
             NativeForm.valuesDict list
     in
     Ok ParsedInfo
-        |> field "mytext" dict nonEmptyString
+        |> field "mytext" (nonEmptyString (Dict.get "mytext" dict))
 
 
 {-| Pipe friendly builder of values that accumulates errors
 -}
 field :
     comparable
-    -> Dict comparable v
-    -> (Maybe v -> Result err a)
+    -> Result err a
     -> Result (Dict comparable err) (a -> b)
     -> Result (Dict comparable err) b
-field k dict fn result =
-    case ( result, fn (Dict.get k dict) ) of
+field k newresult result =
+    case ( result, newresult ) of
         ( Err errs, Err newerrs ) ->
             Err (Dict.insert k newerrs errs)
 
