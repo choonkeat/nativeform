@@ -1,6 +1,6 @@
 module NativeForm exposing
     ( Value(..)
-    , decoder
+    , decoder, valuesDict, valuesAppend
     )
 
 {-| Using browser `document` to decode the current values of forms at anytime.
@@ -13,10 +13,11 @@ module NativeForm exposing
 
 ## Helper
 
-@docs decoder
+@docs decoder, valuesDict, valuesAppend
 
 -}
 
+import Dict exposing (Dict)
 import Json.Decode
 
 
@@ -30,6 +31,77 @@ and is entirely up to your application to convert and validate it with
 type Value
     = OneValue String
     | ManyValues (List String)
+
+
+{-| Given 2 Value, return a ManyValues
+
+    valuesAppend (OneValue "1") (OneValue "a")
+    --> ManyValues ["1","a"]
+
+    valuesAppend (OneValue "1") (ManyValues ["a","b"])
+    --> ManyValues ["1","a","b"]
+
+    valuesAppend (ManyValues ["1","2"]) (ManyValues ["a","b"])
+    --> ManyValues ["1","2","a","b"]
+
+    valuesAppend (ManyValues ["1","2"]) (OneValue "a")
+    --> ManyValues ["1","2","a"]
+
+-}
+valuesAppend : Value -> Value -> Value
+valuesAppend a b =
+    case ( a, b ) of
+        ( OneValue x, OneValue y ) ->
+            ManyValues [ x, y ]
+
+        ( OneValue x, ManyValues y ) ->
+            ManyValues (x :: y)
+
+        ( ManyValues x, OneValue y ) ->
+            ManyValues (x ++ [ y ])
+
+        ( ManyValues x, ManyValues y ) ->
+            ManyValues (x ++ y)
+
+
+{-| Given a list of key values, combine the values of duplicate keys
+
+    import Dict exposing (Dict)
+
+    valuesDict
+        [ (1, OneValue "1")
+        , (2, OneValue "a")
+        , (2, ManyValues ["b","c"])
+        , (3, ManyValues ["yes","no"])
+        ]
+    --> Dict.fromList
+    -->     [ (1, OneValue "1")
+    -->     , (2, ManyValues ["a","b","c"])
+    -->     , (3, ManyValues ["yes","no"])
+    -->     ]
+
+-}
+valuesDict : List ( comparable, Value ) -> Dict comparable Value
+valuesDict list =
+    List.foldl
+        (\( k, v ) ( dict, seen ) ->
+            if Dict.member k seen then
+                ( Dict.update k
+                    (\maybeV ->
+                        Just (valuesAppend (Maybe.withDefault (ManyValues []) maybeV) v)
+                    )
+                    dict
+                , seen
+                )
+
+            else
+                ( Dict.insert k v dict
+                , Dict.insert k () seen
+                )
+        )
+        ( Dict.empty, Dict.empty )
+        list
+        |> Tuple.first
 
 
 {-| Given the `id` attribute of a `<form>` tag, we can decode the current
