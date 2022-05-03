@@ -46,7 +46,10 @@ init flags =
       , decodedForm = []
       , tz = Time.utc
       }
-    , Task.perform GotTimezone Time.here
+    , Cmd.batch
+        [ Task.perform GotTimezone Time.here
+        , Task.perform OnFormChange (Task.succeed "form123")
+        ]
     )
 
 
@@ -197,7 +200,7 @@ view model =
             , p []
                 [ text "And triggered by "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L63"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L66"
                     , target "_blank"
                     ]
                     [ code [] [ text "form [ on \"change\" ... ]" ] ]
