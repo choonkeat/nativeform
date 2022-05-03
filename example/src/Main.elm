@@ -286,10 +286,11 @@ type alias Errors =
 {-| this is the desired record type we want from our form
 -}
 type alias ParsedInfo =
-    { -- myselect : Rating
-      -- , myselectmulti : Characteristic
-      -- , mycheckbox : Hobbies
-      mytext : String
+    { myselect : Rating
+    , myselectmulti : List Characteristic
+
+    -- , mycheckbox : Hobbies
+    , mytext : String
 
     -- , mytextarea : String
     -- , myemail : Email
@@ -314,10 +315,53 @@ type Rating
     | Okay
 
 
+toRating : Maybe NativeForm.Value -> Result String Rating
+toRating maybeV =
+    case Maybe.withDefault (NativeForm.OneValue "") maybeV of
+        NativeForm.OneValue "Very good" ->
+            Ok VeryGood
+
+        NativeForm.OneValue "Good" ->
+            Ok Good
+
+        NativeForm.OneValue "Okay" ->
+            Ok Okay
+
+        _ ->
+            Err "invalid rating"
+
+
 type Characteristic
     = Pure
     | Type
     | Functional
+
+
+characteristicFromString : String -> Maybe Characteristic
+characteristicFromString s =
+    case s of
+        "Pure" ->
+            Just Pure
+
+        "Type" ->
+            Just Type
+
+        "Functional" ->
+            Just Functional
+
+        _ ->
+            Nothing
+
+
+toCharacteristic : Maybe NativeForm.Value -> Result String (List Characteristic)
+toCharacteristic maybeV =
+    Result.fromMaybe "invalid characteristic" <|
+        case Maybe.withDefault (NativeForm.ManyValues []) maybeV of
+            NativeForm.ManyValues list ->
+                List.foldl (\s sum -> Maybe.map2 (::) (characteristicFromString s) sum) (Just []) list
+
+            _ ->
+                Nothing
 
 
 type Hobbies
@@ -351,7 +395,9 @@ parseDontValidate tz list =
             NativeForm.valuesDict list
     in
     Ok ParsedInfo
-        |> field "mytext" (nonEmptyString (Dict.get "mytext" dict))
+        |> field "myselect" (toRating (Dict.get "myselect" dict))
+        |> field "myselectmulti" (toCharacteristic (Dict.get "myselectmulti" dict))
+        |> field "mytext" (toNonEmptyString (Dict.get "mytext" dict))
 
 
 {-| Pipe friendly builder of values that accumulates errors
@@ -376,8 +422,8 @@ field k newresult result =
             Ok (res a)
 
 
-nonEmptyString : Maybe NativeForm.Value -> Result String String
-nonEmptyString maybeV =
+toNonEmptyString : Maybe NativeForm.Value -> Result String String
+toNonEmptyString maybeV =
     case Maybe.withDefault (NativeForm.OneValue "") maybeV of
         NativeForm.OneValue "" ->
             Err "cannot be empty"
