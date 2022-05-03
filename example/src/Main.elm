@@ -20,7 +20,7 @@ type alias Flags =
 
 type alias Model =
     { document : Json.Encode.Value
-    , decodedForm : List ( String, NativeForm.Value )
+    , decodedForm : List ( String, NativeForm.Value String )
     , tz : Time.Zone
     }
 
@@ -217,7 +217,7 @@ view model =
         ]
 
 
-viewDecodedForm : Time.Zone -> List ( String, NativeForm.Value ) -> Html msg
+viewDecodedForm : Time.Zone -> List ( String, NativeForm.Value String ) -> Html msg
 viewDecodedForm tz list =
     let
         hasValue ( _, v ) =
@@ -315,20 +315,28 @@ type Rating
     | Okay
 
 
-toRating : Maybe NativeForm.Value -> Result String Rating
-toRating maybeV =
-    case Maybe.withDefault (NativeForm.OneValue "") maybeV of
-        NativeForm.OneValue "Very good" ->
-            Ok VeryGood
+ratingFromString : String -> Maybe Rating
+ratingFromString s =
+    case s of
+        "Very good" ->
+            Just VeryGood
 
-        NativeForm.OneValue "Good" ->
-            Ok Good
+        "Good" ->
+            Just Good
 
-        NativeForm.OneValue "Okay" ->
-            Ok Okay
+        "Okay" ->
+            Just Okay
 
         _ ->
-            Err "invalid rating"
+            Nothing
+
+
+toRating : Maybe (NativeForm.Value String) -> Result String Rating
+toRating maybeV =
+    maybeV
+        |> Maybe.map (NativeForm.oneMap ratingFromString)
+        |> Maybe.andThen (NativeForm.oneWithDefault Nothing)
+        |> Result.fromMaybe "invalid rating"
 
 
 type Characteristic
@@ -353,15 +361,12 @@ characteristicFromString s =
             Nothing
 
 
-toCharacteristic : Maybe NativeForm.Value -> Result String (List Characteristic)
+toCharacteristic : Maybe (NativeForm.Value String) -> Result String (List Characteristic)
 toCharacteristic maybeV =
-    Result.fromMaybe "invalid characteristic" <|
-        case Maybe.withDefault (NativeForm.ManyValues []) maybeV of
-            NativeForm.ManyValues list ->
-                List.foldl (\s sum -> Maybe.map2 (::) (characteristicFromString s) sum) (Just []) list
-
-            _ ->
-                Nothing
+    maybeV
+        |> Maybe.map (NativeForm.manyMap (List.filterMap characteristicFromString))
+        |> Maybe.map (NativeForm.manyWithDefault [])
+        |> Result.fromMaybe "invalid characteristic"
 
 
 type Hobbies
@@ -388,7 +393,7 @@ type alias Color =
     }
 
 
-parseDontValidate : Time.Zone -> List ( String, NativeForm.Value ) -> Result Errors ParsedInfo
+parseDontValidate : Time.Zone -> List ( String, NativeForm.Value String ) -> Result Errors ParsedInfo
 parseDontValidate tz list =
     let
         dict =
@@ -422,17 +427,15 @@ field k newresult result =
             Ok (res a)
 
 
-toNonEmptyString : Maybe NativeForm.Value -> Result String String
+toNonEmptyString : Maybe (NativeForm.Value String) -> Result String String
 toNonEmptyString maybeV =
-    case Maybe.withDefault (NativeForm.OneValue "") maybeV of
-        NativeForm.OneValue "" ->
-            Err "cannot be empty"
+    maybeV
+        |> Maybe.map (NativeForm.oneWithDefault "")
+        |> Maybe.withDefault ""
+        |> (\str ->
+                if String.isEmpty str then
+                    Err "cannot be empty"
 
-        NativeForm.OneValue s ->
-            Ok s
-
-        NativeForm.ManyValues [] ->
-            Err "cannot be empty"
-
-        NativeForm.ManyValues list ->
-            Ok (String.join ", " list)
+                else
+                    Ok str
+           )

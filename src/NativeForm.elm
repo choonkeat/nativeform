@@ -1,6 +1,6 @@
 module NativeForm exposing
     ( Value(..)
-    , decoder, valuesDict, valuesAppend
+    , decoder, valuesDict, valuesAppend, oneMap, manyMap, oneWithDefault, manyWithDefault
     )
 
 {-| Using browser `document` to decode the current values of forms at anytime.
@@ -13,7 +13,7 @@ module NativeForm exposing
 
 ## Helper
 
-@docs decoder, valuesDict, valuesAppend
+@docs decoder, valuesDict, valuesAppend, oneMap, manyMap, oneWithDefault, manyWithDefault
 
 -}
 
@@ -28,9 +28,93 @@ and is entirely up to your application to convert and validate it with
 `String.toInt` or `String.toFloat`
 
 -}
-type Value
-    = OneValue String
-    | ManyValues (List String)
+type Value a
+    = OneValue a
+    | ManyValues (List a)
+
+
+{-|
+
+    OneValue 3
+    |> oneMap ((+) 2)
+    --> OneValue 5
+
+    ManyValues [ 3 ]
+    |> oneMap ((+) 2)
+    --> ManyValues []
+
+-}
+oneMap : (a -> b) -> Value a -> Value b
+oneMap f value =
+    case value of
+        OneValue a ->
+            OneValue (f a)
+
+        ManyValues _ ->
+            ManyValues []
+
+
+{-|
+
+    OneValue 3
+    |> manyMap ((++) [ 2 ])
+    --> ManyValues []
+
+    ManyValues [ 3 ]
+    |> manyMap ((++) [ 2 ])
+    --> ManyValues [ 2, 3 ]
+
+-}
+manyMap : (List a -> List b) -> Value a -> Value b
+manyMap f value =
+    case value of
+        OneValue _ ->
+            ManyValues []
+
+        ManyValues list ->
+            ManyValues (f list)
+
+
+{-|
+
+    OneValue 42
+    |> oneWithDefault 3
+    --> 42
+
+    ManyValues [42]
+    |> oneWithDefault 3
+    --> 3
+
+-}
+oneWithDefault : a -> Value a -> a
+oneWithDefault default value =
+    case value of
+        OneValue a ->
+            a
+
+        ManyValues _ ->
+            default
+
+
+{-|
+
+    OneValue 42
+    |> manyWithDefault [3]
+    --> [3]
+
+    ManyValues [42]
+    |> manyWithDefault [3]
+    --> [42]
+
+-}
+manyWithDefault : List a -> Value a -> List a
+manyWithDefault default value =
+    case value of
+        OneValue _ ->
+            default
+
+        ManyValues list ->
+            list
 
 
 {-| Given 2 Value, return a ManyValues
@@ -48,7 +132,7 @@ type Value
     --> ManyValues ["1","2","a"]
 
 -}
-valuesAppend : Value -> Value -> Value
+valuesAppend : Value a -> Value a -> Value a
 valuesAppend a b =
     case ( a, b ) of
         ( OneValue x, OneValue y ) ->
@@ -81,7 +165,7 @@ valuesAppend a b =
     -->     ]
 
 -}
-valuesDict : List ( comparable, Value ) -> Dict comparable Value
+valuesDict : List ( comparable, Value a ) -> Dict comparable (Value a)
 valuesDict list =
     List.foldl
         (\( k, v ) ( dict, seen ) ->
@@ -132,7 +216,7 @@ names are preserved. So we are preserving them here too.
 <https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/elements>
 
 -}
-decoder : String -> Json.Decode.Decoder (List ( String, Value ))
+decoder : String -> Json.Decode.Decoder (List ( String, Value String ))
 decoder formId =
     Json.Decode.at [ "forms", formId, "elements" ] (decodeArrayish decodeFormElement)
         |> Json.Decode.map List.concat
@@ -169,7 +253,7 @@ decodeArrayish_help indexedDecoder index length =
 
 {-| Primary decoder for each item in HTMLFormControlsCollection
 -}
-decodeFormElement : Int -> Json.Decode.Decoder (List ( String, Value ))
+decodeFormElement : Int -> Json.Decode.Decoder (List ( String, Value String ))
 decodeFormElement index =
     Json.Decode.oneOf
         [ Json.Decode.field (String.fromInt index) decodeMultiSelect
