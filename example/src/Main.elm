@@ -2,9 +2,11 @@ module Main exposing (..)
 
 import Browser
 import Dict exposing (Dict)
-import Html exposing (Html, a, br, code, div, form, h3, h4, input, label, option, p, pre, select, span, table, td, text, textarea, th, tr)
-import Html.Attributes exposing (class, href, id, max, min, multiple, name, placeholder, target, type_, value)
+import Hex
+import Html exposing (Html, a, br, code, div, form, h3, h4, input, label, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
+import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, target, type_, value)
 import Html.Events exposing (on, onClick)
+import Iso8601
 import Json.Decode
 import Json.Encode
 import NativeForm
@@ -90,7 +92,7 @@ view model =
                     ]
                 ]
             , p []
-                [ label [] [ text "Input checkbox" ]
+                [ label [ class "required" ] [ text "Input checkbox" ]
                 , p []
                     [ label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Soccer" ] [], text "Soccer" ]
                     , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Basketball" ] [], text "Basketball" ]
@@ -98,7 +100,7 @@ view model =
                     ]
                 ]
             , p []
-                [ label [] [ text "Input text" ]
+                [ label [ class "required" ] [ text "Input text" ]
                 , p [] [ input [ name "mytext", type_ "text" ] [] ]
                 ]
             , p []
@@ -148,7 +150,7 @@ view model =
                 , p [] [ input [ name "mytel", type_ "tel" ] [] ]
                 ]
             , p []
-                [ label [] [ text "Input url" ]
+                [ label [ class "required" ] [ text "Input url" ]
                 , p [] [ input [ name "myurl", type_ "url" ] [] ]
                 ]
             , p []
@@ -156,11 +158,11 @@ view model =
                 , p [] [ input [ name "mycolor", type_ "color" ] [] ]
                 ]
             , p []
-                [ label [] [ text "Input date" ]
+                [ label [ class "required" ] [ text "Input date" ]
                 , p [] [ input [ name "mydate", type_ "date" ] [] ]
                 ]
             , p []
-                [ label [] [ text "Input datetime-local" ]
+                [ label [ class "required" ] [ text "Input datetime-local" ]
                 , p [] [ input [ name "mydatetime-local", type_ "datetime-local" ] [] ]
                 ]
             , p []
@@ -187,24 +189,29 @@ view model =
                 ]
             ]
         , div [ id "debugOutput" ]
-            [ h3 [] [ text "Output" ]
+            [ h3 [] [ text "About" ]
             , p []
                 [ text "This form is managed by Elm with only "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L28-L29"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L30-L31"
                     , target "_blank"
                     ]
                     [ code [] [ text "type Msg = OnFormChange String" ] ]
-                , text "."
-                ]
-            , p []
-                [ text "And triggered by "
+                , text ". And happens to be triggered by "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L66"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L68"
                     , target "_blank"
                     ]
                     [ code [] [ text "form [ on \"change\" ... ]" ] ]
-                , text "; you can wire up a different event handler in your app instead."
+                , text "."
+                ]
+            , p []
+                [ text "Don't focus on "
+                , a [ href "https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onchange" ]
+                    [ text "characteristics of form change event" ]
+                , text "; you can wire up "
+                , code [] [ text "NativeForm" ]
+                , text " to any different event handlers instead."
                 ]
             , p []
                 [ text "See more at "
@@ -233,7 +240,7 @@ viewDecodedForm tz list =
 
         viewRow ( k, v ) =
             tr []
-                [ th [] [ text k ]
+                [ td [] [ text k ]
                 , td [] [ text (Debug.toString v) ]
                 ]
 
@@ -241,15 +248,22 @@ viewDecodedForm tz list =
             parseDontValidate tz list
     in
     div []
-        [ h4 [] [ text "Parsed info" ]
+        [ h4 [] [ text "Parsed output" ]
         , pre []
             [ text (Debug.toString parsedInfo)
             ]
-        , h4 [] [ text "Raw key values" ]
+        , h4 [] [ text "Raw output" ]
         , table []
-            (list
-                |> List.filter hasValue
-                |> List.map viewRow
+            (thead []
+                [ tr []
+                    [ th [] [ text "String" ]
+                    , th [] [ text "NativeForm.Value String" ]
+                    ]
+                ]
+                :: (list
+                        |> List.filter hasValue
+                        |> List.map viewRow
+                   )
             )
         ]
 
@@ -288,21 +302,24 @@ type alias Errors =
 type alias ParsedInfo =
     { myselect : Rating
     , myselectmulti : List Characteristic
-
-    -- , mycheckbox : Hobbies
+    , mycheckbox : List Hobby
     , mytext : String
 
+    --
     -- , mytextarea : String
     -- , myemail : Email
-    -- , mynumber : Maybe Int
+    , mynumber : Maybe Int
+
     -- , myradio : Location
     -- , myrange : Int
     -- , mysearch : String
     -- , mytel : String
-    -- , myurl : Url.Url
-    -- , mycolor : Color
-    -- , mydate : Time.Posix
-    -- , mydatetimelocal : Time.Posix
+    --
+    , myurl : Url.Url
+    , mycolor : Color
+    , mydate : Time.Posix
+    , mydatetimelocal : Time.Posix
+
     -- , mymonth : { year : Int, month : Time.Month }
     -- , mypassword : String
     -- , mytime : { hour : Int, minutes : Int }
@@ -361,18 +378,42 @@ characteristicFromString s =
             Nothing
 
 
-toCharacteristic : Maybe (NativeForm.Value String) -> Result String (List Characteristic)
-toCharacteristic maybeV =
+toCharacteristics : Maybe (NativeForm.Value String) -> Result String (List Characteristic)
+toCharacteristics maybeV =
     maybeV
         |> Maybe.map (NativeForm.manyMap (List.filterMap characteristicFromString))
         |> Maybe.map (NativeForm.manyWithDefault [])
         |> Result.fromMaybe "invalid characteristic"
 
 
-type Hobbies
+type Hobby
     = Soccer
     | Basketball
     | Crochet
+
+
+hobbyFromString : String -> Maybe Hobby
+hobbyFromString s =
+    case s of
+        "Soccer" ->
+            Just Soccer
+
+        "Basketball" ->
+            Just Basketball
+
+        "Crochet" ->
+            Just Crochet
+
+        _ ->
+            Nothing
+
+
+toHobbies : Maybe (NativeForm.Value String) -> Result String (List Hobby)
+toHobbies maybeV =
+    maybeV
+        |> Maybe.map (NativeForm.manyMap (List.filterMap hobbyFromString))
+        |> Maybe.map (NativeForm.manyWithDefault [])
+        |> Result.fromMaybe "invalid hobby"
 
 
 type Email
@@ -389,8 +430,40 @@ type alias Color =
     { red : Int
     , green : Int
     , blue : Int
-    , alpha : Int
     }
+
+
+colorFromString : String -> Maybe Color
+colorFromString str =
+    let
+        red int =
+            modBy 256 (int // 256 // 256)
+
+        green int =
+            modBy 256 (int // 256)
+
+        blue int =
+            modBy 256 int
+    in
+    if String.startsWith "#" str then
+        Hex.fromString (String.dropLeft 1 str)
+            |> Result.map (\i -> Color (red i) (green i) (blue i))
+            |> Result.toMaybe
+
+    else
+        Nothing
+
+
+toColor : Maybe (NativeForm.Value String) -> Result String Color
+toColor maybeV =
+    maybeV
+        |> Maybe.map (NativeForm.oneMap colorFromString)
+        |> Maybe.andThen (NativeForm.oneWithDefault Nothing)
+        |> Result.fromMaybe "invalid color"
+
+
+
+--
 
 
 parseDontValidate : Time.Zone -> List ( String, NativeForm.Value String ) -> Result Errors ParsedInfo
@@ -401,8 +474,14 @@ parseDontValidate tz list =
     in
     Ok ParsedInfo
         |> field "myselect" (toRating (Dict.get "myselect" dict))
-        |> field "myselectmulti" (toCharacteristic (Dict.get "myselectmulti" dict))
+        |> field "myselectmulti" (toCharacteristics (Dict.get "myselectmulti" dict))
+        |> field "mycheckbox" (toHobbies (Dict.get "mycheckbox" dict))
         |> field "mytext" (toNonEmptyString (Dict.get "mytext" dict))
+        |> field "mynumber" (toInt (Dict.get "mynumber" dict))
+        |> field "myurl" (toUrl (Dict.get "myurl" dict))
+        |> field "mycolor" (toColor (Dict.get "mycolor" dict))
+        |> field "mydate" (toTimePosix TypeDate tz (Dict.get "mydate" dict))
+        |> field "mydatetime-local" (toTimePosix TypeDateTimeLocal tz (Dict.get "mydatetime-local" dict))
 
 
 {-| Pipe friendly builder of values that accumulates errors
@@ -439,3 +518,55 @@ toNonEmptyString maybeV =
                 else
                     Ok str
            )
+
+
+toInt : Maybe (NativeForm.Value String) -> Result String (Maybe Int)
+toInt maybeV =
+    maybeV
+        |> Maybe.map (NativeForm.oneMap String.toInt)
+        |> Maybe.map (NativeForm.oneWithDefault Nothing)
+        |> Result.fromMaybe "invalid number"
+
+
+toUrl : Maybe (NativeForm.Value String) -> Result String Url.Url
+toUrl maybeV =
+    maybeV
+        |> Maybe.map (NativeForm.oneMap Url.fromString)
+        |> Maybe.andThen (NativeForm.oneWithDefault Nothing)
+        |> Result.fromMaybe "invalid url"
+
+
+type DateInputType
+    = TypeDate
+    | TypeDateTimeLocal
+
+
+toTimePosix : DateInputType -> Time.Zone -> Maybe (NativeForm.Value String) -> Result String Time.Posix
+toTimePosix dateInputType tz maybeV =
+    let
+        suffix =
+            case dateInputType of
+                TypeDate ->
+                    "T00:00:00Z"
+
+                TypeDateTimeLocal ->
+                    ":00Z"
+
+        fixTzHours t =
+            Time.millisToPosix 0
+                |> Time.toHour tz
+                |> (\h -> Time.posixToMillis t - (h * 3600000))
+                |> Time.millisToPosix
+
+        fixTzMinutes t =
+            -- some timezones are 30 minutes off
+            Time.millisToPosix 0
+                |> Time.toMinute tz
+                |> (\m -> Time.posixToMillis t - (m * 60000))
+                |> Time.millisToPosix
+    in
+    maybeV
+        |> Result.fromMaybe "cannot be blank"
+        |> Result.map (NativeForm.oneMap (\s -> Iso8601.toTime (s ++ suffix) |> Result.mapError (always ("Invalid date: " ++ s))))
+        |> Result.andThen (NativeForm.oneWithDefault (Err "Invalid date"))
+        |> Result.map (fixTzHours >> fixTzMinutes)

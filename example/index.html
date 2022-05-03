@@ -16,12 +16,20 @@
         input[type="checkbox"], input[type="radio"] {
             margin-right: 0.5em;
         }
+
+        /* fix newcss */
         input[type="color"] {
             padding: initial;
             appearance: color-well !important;
             width: 44px !important;
             height: 23px !important;
             outline-style: none !important;
+        }
+
+        .required:after {
+            font-size: small;
+            vertical-align: top;
+            content: "*";
         }
 
         .desktop-hint {
