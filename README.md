@@ -2,6 +2,23 @@
 
 Working with `form` in Elm without storing raw form state in Elm, aka "Use the [Platform](https://developer.mozilla.org/en-US/docs/Web/API/Document/forms)".
 
+Before
+
+1. Use `value someValue` to set form field value when we render a form (e.g. edit form)
+    - we are now obliged to keep `someValue` in sync with user's input
+1. Use `onInput` msg to update `someValue`
+    - store this value in model
+    - this value may not be the desired type, e.g. storing raw `String` on behalf of a `Time.Posix` model state
+
+After
+
+1. Use `defaultValue someValue` to set form field value when we render a form (e.g. edit form)
+    - no longer obliged to keep `someValue` in sync with user's input
+1. Use `NativeForm.decoder` anytime to retrieve the form values from browser [`window.document`](https://developer.mozilla.org/en-US/docs/Web/API/Window/document)
+    - No need for `onInput` nor a `msg` for every form field
+    - Only do ☝️ for fields that really need handling (not requiring it to be done for all form fields)
+    - But forms need an `id`, form fields need a `name`
+
 ### Demo
 
 Checkout the demo at https://nativeform.netlify.app and its source code at [example](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm) subdirectory.
@@ -40,4 +57,4 @@ Checkout the demo at https://nativeform.netlify.app and its source code at [exam
         -> Result String UserInfo
     ```
 
-    See a [sample `parseDontValidate` implementation](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L344)
+    See a [sample `parseDontValidate` implementation](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L471-L472)

@@ -578,6 +578,11 @@ toTimePosix dateInputType tz maybeV =
 --
 
 
+{-| This is a property <https://developer.mozilla.org/en-US/docs/Web/API/HTMLInputElement>
+
+Not an html attribute <https://developer.mozilla.org/en-US/docs/Web/HTML/Element/input>
+
+-}
 defaultValue : String -> Html.Attribute msg
 defaultValue str =
     property "defaultValue" (Json.Encode.string str)
