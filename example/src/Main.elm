@@ -3,8 +3,8 @@ module Main exposing (..)
 import Browser
 import Dict exposing (Dict)
 import Hex
-import Html exposing (Html, a, br, code, div, form, h3, h4, input, label, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
-import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, target, type_, value)
+import Html exposing (Html, a, br, code, div, form, h3, h4, input, label, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
+import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, property, target, type_, value)
 import Html.Events exposing (on, onClick)
 import Iso8601
 import Json.Decode
@@ -96,16 +96,18 @@ view model =
                 , p []
                     [ label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Soccer" ] [], text "Soccer" ]
                     , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Basketball" ] [], text "Basketball" ]
-                    , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Crochet" ] [], text "Crochet" ]
+                    , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Crochet", defaultChecked True ] [], text "Crochet" ]
                     ]
                 ]
             , p []
                 [ label [ class "required" ] [ text "Input text" ]
-                , p [] [ input [ name "mytext", type_ "text" ] [] ]
+                , p []
+                    [ input [ name "mytext", type_ "text", defaultValue "hello world" ] []
+                    ]
                 ]
             , p []
                 [ label [] [ text "Textarea" ]
-                , p [] [ textarea [ name "mytextarea" ] [] ]
+                , p [] [ textarea [ name "mytextarea", defaultValue "lorem\nipsum" ] [] ]
                 ]
             , p []
                 [ label [] [ text "Input email" ]
@@ -151,7 +153,7 @@ view model =
                 ]
             , p []
                 [ label [ class "required" ] [ text "Input url" ]
-                , p [] [ input [ name "myurl", type_ "url" ] [] ]
+                , p [] [ input [ name "myurl", type_ "url", defaultValue "http://localhost" ] [] ]
                 ]
             , p []
                 [ label [] [ text "Input color" ]
@@ -159,11 +161,11 @@ view model =
                 ]
             , p []
                 [ label [ class "required" ] [ text "Input date" ]
-                , p [] [ input [ name "mydate", type_ "date" ] [] ]
+                , p [] [ input [ name "mydate", type_ "date", defaultValue "2038-01-11" ] [] ]
                 ]
             , p []
                 [ label [ class "required" ] [ text "Input datetime-local" ]
-                , p [] [ input [ name "mydatetime-local", type_ "datetime-local" ] [] ]
+                , p [] [ input [ name "mydatetime-local", type_ "datetime-local", defaultValue "2038-01-11T15:45" ] [] ]
                 ]
             , p []
                 [ label [] [ text "Input file" ]
@@ -570,3 +572,17 @@ toTimePosix dateInputType tz maybeV =
         |> Result.map (NativeForm.oneMap (\s -> Iso8601.toTime (s ++ suffix) |> Result.mapError (always ("Invalid date: " ++ s))))
         |> Result.andThen (NativeForm.oneWithDefault (Err "Invalid date"))
         |> Result.map (fixTzHours >> fixTzMinutes)
+
+
+
+--
+
+
+defaultValue : String -> Html.Attribute msg
+defaultValue str =
+    property "defaultValue" (Json.Encode.string str)
+
+
+defaultChecked : Bool -> Html.Attribute msg
+defaultChecked bool =
+    property "defaultChecked" (Json.Encode.bool bool)
