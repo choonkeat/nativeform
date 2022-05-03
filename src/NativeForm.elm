@@ -1,19 +1,46 @@
 module NativeForm exposing
-    ( Value(..)
-    , decoder, valuesDict, valuesAppend, oneMap, manyMap, oneWithDefault, manyWithDefault
+    ( decoder
+    , Value(..)
+    , valuesDict, valuesAppend
+    , oneMap, oneWithDefault
+    , manyMap, manyWithDefault
     )
 
-{-| Using browser `document` to decode the current values of forms at anytime.
+{-|
 
-
-## Types
+@docs decoder
 
 @docs Value
 
+@docs valuesDict, valuesAppend
 
-## Helper
 
-@docs decoder, valuesDict, valuesAppend, oneMap, manyMap, oneWithDefault, manyWithDefault
+## Helpers for `OneValue`
+
+Example usage
+
+    toColor : Maybe (NativeForm.Value String) -> Result String Color
+    toColor maybeV =
+        maybeV
+            |> Maybe.map (NativeForm.oneMap colorFromString)
+            |> Maybe.andThen (NativeForm.oneWithDefault Nothing)
+            |> Result.fromMaybe "invalid color"
+
+@docs oneMap, oneWithDefault
+
+
+## Helpers for `ManyValues`
+
+Example usage
+
+    toHobbies : Maybe (NativeForm.Value String) -> Result String (List Hobby)
+    toHobbies maybeV =
+        maybeV
+            |> Maybe.map (NativeForm.manyMap (List.filterMap hobbyFromString))
+            |> Maybe.map (NativeForm.manyWithDefault [])
+            |> Result.fromMaybe "invalid hobby"
+
+@docs manyMap, manyWithDefault
 
 -}
 
@@ -117,7 +144,7 @@ manyWithDefault default value =
             list
 
 
-{-| Given 2 Value, return a ManyValues
+{-| Given 2 [`Value`](#Value), return a [`ManyValues`](#Value)
 
     valuesAppend (OneValue "1") (OneValue "a")
     --> ManyValues ["1","a"]
@@ -189,7 +216,7 @@ valuesDict list =
 
 
 {-| Given the `id` attribute of a `<form>` tag, we can decode the current
-form values into a List of key values.
+form values from the browser `document` and into a List of key values.
 
     view model =
         -- form with `id` attribute
@@ -209,16 +236,34 @@ form values into a List of key values.
         , Cmd.none
         )
 
-NOTE: We are returning a `List` instead of `Dict` because on form submit, duplicate
-names are preserved. So we are preserving them here too.
+We are returning a `List` instead of `Dict` because on form submit, duplicate
+names are preserved. So we are preserving them here too. If a `Dict` is desired,
+use the [`valuesDict`](#valuesDict) helper function
 
-<https://developer.mozilla.org/en-US/docs/Web/API/Document/forms>
-<https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/elements>
+        update msg model =
+        ( { model
+            | formFields =
+                -- decode model.document to obtain a list of
+                -- form field values anytime
+                model.document
+                    |> Json.Decode.decodeValue (NativeForm.decoder "edituserform123")
+    +               |> Result.map NativeForm.valuesDict
+                    |> Result.withDefault []
+        }
+        , Cmd.none
+        )
 
 -}
 decoder : String -> Json.Decode.Decoder (List ( String, Value String ))
 decoder formId =
-    Json.Decode.at [ "forms", formId, "elements" ] (decodeArrayish decodeFormElement)
+    Json.Decode.at
+        -- https://developer.mozilla.org/en-US/docs/Web/API/Document/forms
+        -- https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/elements
+        [ "forms"
+        , formId
+        , "elements"
+        ]
+        (decodeArrayish decodeFormElement)
         |> Json.Decode.map List.concat
 
 

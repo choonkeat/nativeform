@@ -3,7 +3,7 @@
     "name": "choonkeat/nativeform",
     "summary": "Elm library to use form state from the platform",
     "license": "MIT",
-    "version": "1.0.1",
+    "version": "2.0.0",
     "exposed-modules": [
         "NativeForm"
     ],
