@@ -216,7 +216,7 @@ valuesDict list =
 
 
 {-| Given the `id` attribute of a `<form>` tag, we can decode the current
-form values from the browser `document` and into a List of key values.
+form values from the browser `document.forms` and into a List of key values.
 
     view model =
         -- form with `id` attribute
@@ -227,9 +227,9 @@ form values from the browser `document` and into a List of key values.
     update msg model =
         ( { model
             | formFields =
-                -- decode model.document to obtain a list of
+                -- decode model.document.forms to obtain a list of
                 -- form field values anytime
-                model.document
+                model.documentForms
                     |> Json.Decode.decodeValue (NativeForm.decoder "edituserform123")
                     |> Result.withDefault []
           }
@@ -243,9 +243,9 @@ use the [`valuesDict`](#valuesDict) helper function
         update msg model =
         ( { model
             | formFields =
-                -- decode model.document to obtain a list of
+                -- decode model.document.forms to obtain a list of
                 -- form field values anytime
-                model.document
+                model.documentForms
                     |> Json.Decode.decodeValue (NativeForm.decoder "edituserform123")
     +               |> Result.map NativeForm.valuesDict
                     |> Result.withDefault []
@@ -259,8 +259,7 @@ decoder formId =
     Json.Decode.at
         -- https://developer.mozilla.org/en-US/docs/Web/API/Document/forms
         -- https://developer.mozilla.org/en-US/docs/Web/API/HTMLFormElement/elements
-        [ "forms"
-        , formId
+        [ formId
         , "elements"
         ]
         (decodeArrayish decodeFormElement)

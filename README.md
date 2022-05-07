@@ -14,7 +14,7 @@ After
 
 1. Use `defaultValue someValue` to set form field value when we render a form (e.g. edit form)
     - no longer obliged to keep `someValue` in sync with user's input
-1. Use `NativeForm.decoder` anytime to retrieve the form values from browser [`window.document`](https://developer.mozilla.org/en-US/docs/Web/API/Window/document)
+1. Use `NativeForm.decoder` anytime to retrieve the form values from browser [`document.forms`](https://developer.mozilla.org/en-US/docs/Web/API/Document/forms)
     - No need for `onInput` nor a `msg` for every form field
     - Only do ☝️ for fields that really need handling (not requiring it to be done for all form fields)
     - But forms need an `id`, form fields need a `name`
@@ -25,21 +25,21 @@ Checkout the demo at https://nativeform.netlify.app and its source code at [exam
 
 ### Getting started
 
-1. Pass the browser `document` into your Elm app through [Flags](https://guide.elm-lang.org/interop/flags.html)
+1. Pass the browser `document.forms` into your Elm app through [Flags](https://guide.elm-lang.org/interop/flags.html)
 
     ```diff
         <script>
             var app = Elm.Main.init({
                 node: document.getElementById('myapp'),
                 flags: {
-                    document: document // <-- important!
+                    documentForms: document.forms // <-- important!
                 }
             })
         </script>
     ```
-1. Store the `document : Json.Encode.Value` from your `Flags` in your `Model`
+1. Store the `documentForms : Json.Encode.Value` from your `Flags` in your `Model`
 1. Wire up any (or many) events, e.g. `form [ on "change" OnFormChange ]` or `input [ onInput (always OnFormChange) ]`
-1. And call `Json.Decode.decodeValue (NativeForm.decoder formId) model.document` to get the list of form field name and values.
+1. And call `Json.Decode.decodeValue (NativeForm.decoder formId) model.documentForms` to get the list of form field name and values.
 
 ### Notes
 

@@ -16,12 +16,12 @@ import Url
 
 
 type alias Flags =
-    { document : Json.Encode.Value
+    { documentForms : Json.Encode.Value
     }
 
 
 type alias Model =
-    { document : Json.Encode.Value
+    { documentForms : Json.Encode.Value
     , decodedForm : List ( String, NativeForm.Value String )
     , tz : Time.Zone
     }
@@ -44,7 +44,7 @@ main =
 
 init : Flags -> ( Model, Cmd Msg )
 init flags =
-    ( { document = flags.document
+    ( { documentForms = flags.documentForms
       , decodedForm = []
       , tz = Time.utc
       }
@@ -276,7 +276,7 @@ update msg model =
         OnFormChange formId ->
             ( { model
                 | decodedForm =
-                    Json.Decode.decodeValue (NativeForm.decoder formId) model.document
+                    Json.Decode.decodeValue (NativeForm.decoder formId) model.documentForms
                         |> Result.withDefault []
               }
             , Cmd.none
