@@ -15,33 +15,32 @@ After
 1. Use `defaultValue someValue` to set form field value when we render a form (e.g. edit form)
     - no longer obliged to keep `someValue` in sync with user's input
 1. Use `NativeForm.decoder` anytime to retrieve the form values from browser [`document.forms`](https://developer.mozilla.org/en-US/docs/Web/API/Document/forms)
-    - No need for `onInput` nor a `msg` for every form field
-    - Only do ☝️ for fields that really need handling (not requiring it to be done for all form fields)
-    - But forms need an `id`, form fields need a `name`
+    - No need for `onInput` nor a `msg` for every form field; only do so for fields that really need handling
+    - But forms must be given the `id` attribute and form fields must be given a `name` attribute
 
-### Demo
+## Demo
 
 Checkout the demo at https://nativeform.netlify.app and its source code at [example](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm) subdirectory.
 
-### Getting started
+## Getting started
 
 1. Pass the browser `document.forms` into your Elm app through [Flags](https://guide.elm-lang.org/interop/flags.html)
 
     ```diff
-        <script>
-            var app = Elm.Main.init({
-                node: document.getElementById('myapp'),
-                flags: {
-                    documentForms: document.forms // <-- important!
-                }
-            })
-        </script>
+    <script>
+    var app = Elm.Main.init({
+        node: document.getElementById('myapp'),
+        flags: {
+            documentForms: document.forms // <-- important!
+        }
+    })
+    </script>
     ```
 1. Store the `documentForms : Json.Encode.Value` from your `Flags` in your `Model`
 1. Wire up any (or many) events, e.g. `form [ on "change" OnFormChange ]` or `input [ onInput (always OnFormChange) ]`
 1. And call `Json.Decode.decodeValue (NativeForm.decoder formId) model.documentForms` to get the list of form field name and values.
 
-### Notes
+## Notes
 
 1. No matter how many fields you have, you only need one `Msg`
 1. Always give your form an `id` value
@@ -57,4 +56,4 @@ Checkout the demo at https://nativeform.netlify.app and its source code at [exam
         -> Result String UserInfo
     ```
 
-    See a [sample `parseDontValidate` implementation](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L471-L472)
+    See a [sample `parseDontValidate` implementation](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L529-L544)

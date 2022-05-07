@@ -245,8 +245,9 @@ form values from the browser `document.forms` and into a List of key values.
         )
 
 We are returning a `List` instead of `Dict` because on form submit, duplicate
-names are preserved. So we are preserving them here too. If a `Dict` is desired,
-use the [`valuesDict`](#valuesDict) helper function
+names are preserved. So we are preserving them here too.
+
+If a `Dict` is desired, pipe to the [`valuesDict`](#valuesDict) helper function
 
         update msg model =
         ( { model
@@ -257,7 +258,7 @@ use the [`valuesDict`](#valuesDict) helper function
                     |> Json.Decode.decodeValue (NativeForm.decoder "edituserform123")
     +               |> Result.map NativeForm.valuesDict
                     |> Result.withDefault []
-        }
+          }
         , Cmd.none
         )
 
