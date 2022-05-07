@@ -4,6 +4,7 @@ module NativeForm exposing
     , valuesDict, valuesAppend
     , oneMap, oneWithDefault
     , manyMap, manyWithDefault
+    , CustomizedHtml, buildCustomizedHtml
     )
 
 {-|
@@ -42,10 +43,13 @@ Example usage
 
 @docs manyMap, manyWithDefault
 
+@docs CustomizedHtml, buildCustomizedHtml
+
 -}
 
 import Dict exposing (Dict)
 import Json.Decode
+import Json.Encode
 
 
 {-| Values from form fields are either `String` or `List String`
@@ -402,3 +406,141 @@ decodeInput =
     Json.Decode.map2 Tuple.pair
         (Json.Decode.field "name" Json.Decode.string)
         (Json.Decode.field "value" Json.Decode.string)
+
+
+{-| Applications can create their own form element functions
+
+    import Html
+    import Html.Attributes
+
+    customized : NativeForm.CustomizedHtml FormId FieldName (Html.Attribute msg) (Html.Html msg)
+    customized =
+        NativeForm.buildCustomizedHtml
+            { form = Html.form
+            , input = Html.input
+            , textarea = Html.textarea
+            , option = Html.option
+            , select = Html.select
+            , property = Html.Attributes.property
+            , type_ = Html.Attributes.type_
+            }
+            { formIdAttr = stringFromFormId >> Html.Attributes.id
+            , fieldNameAttr = stringFromFieldName >> Html.Attributes.name
+            }
+
+    form : FormId -> List (Html.Attribute msg) -> List (Html.Html msg) -> Html.Html msg
+    form =
+        customized.form
+
+    checkbox : FieldName -> Maybe Bool -> List (Html.Attribute msg) -> List (Html.Html msg) -> Html.Html msg
+    checkbox =
+        customized.checkbox
+
+Then expose the created helpers for use in the application
+
+    module MyHtml exposing
+        ( FieldName(..)
+        , FormId(..)
+        , checkbox
+        , form
+        )
+
+This allows NativeForm to support other html libraries, e.g. elm/html vs rtfeldman/elm-css
+
+-}
+type alias CustomizedHtml formid fieldname attr elems =
+    { form : formid -> List attr -> List elems -> elems
+    , input : fieldname -> Maybe String -> List attr -> List elems -> elems
+    , textarea : fieldname -> Maybe String -> List attr -> List elems -> elems
+    , radio : fieldname -> Maybe Bool -> List attr -> List elems -> elems
+    , checkbox : fieldname -> Maybe Bool -> List attr -> List elems -> elems
+    , option : Maybe Bool -> List attr -> List elems -> elems
+    , select : fieldname -> List attr -> List elems -> elems
+    }
+
+
+{-| Given a set of helpers to build html elements, e.g. `input`, \`select
+return a different set of helpers to build html elements but with the
+concept of FormId, FieldName, default values, etc
+-}
+buildCustomizedHtml :
+    { form : List attr -> List elem -> html
+    , input : List attr -> List elem -> html
+    , select : List attr -> List elem -> html
+    , option : List attr -> List elem -> html
+    , textarea : List attr -> List elem -> html
+    , property : String -> Json.Encode.Value -> attr
+    , type_ : String -> attr
+    }
+    ->
+        { formIdAttr : id -> attr
+        , fieldNameAttr : name -> attr
+        }
+    ->
+        { form : id -> List attr -> List elem -> html
+        , input : name -> Maybe String -> List attr -> List elem -> html
+        , textarea : name -> Maybe String -> List attr -> List elem -> html
+        , radio : name -> Maybe Bool -> List attr -> List elem -> html
+        , checkbox : name -> Maybe Bool -> List attr -> List elem -> html
+        , option : Maybe Bool -> List attr -> List elem -> html
+        , select : name -> List attr -> List elem -> html
+        }
+buildCustomizedHtml html enums =
+    { form =
+        \id attrs elems ->
+            html.form
+                (enums.formIdAttr id :: attrs)
+                elems
+    , input =
+        \name maybeValue attrs ->
+            html.input
+                (enums.fieldNameAttr name :: attrs ++ maybeProperty (html.property "defaultValue") Json.Encode.string maybeValue)
+    , textarea =
+        \name maybeValue attrs ->
+            html.textarea
+                (enums.fieldNameAttr name :: attrs ++ maybeProperty (html.property "defaultValue") Json.Encode.string maybeValue)
+    , radio =
+        \name maybeValue attrs ->
+            html.input
+                (enums.fieldNameAttr name :: html.type_ "radio" :: attrs ++ maybeProperty (html.property "defaultChecked") Json.Encode.bool maybeValue)
+    , checkbox =
+        \name maybeValue attrs ->
+            html.input
+                (enums.fieldNameAttr name :: html.type_ "checkbox" :: attrs ++ maybeProperty (html.property "defaultChecked") Json.Encode.bool maybeValue)
+    , option =
+        \maybeChecked attrs ->
+            html.option
+                (maybeProperty (html.property "defaultSelected") Json.Encode.bool maybeChecked ++ attrs)
+    , select =
+        \name attrs ->
+            html.select
+                (enums.fieldNameAttr name :: attrs)
+    }
+
+
+{-| Given a function that works like
+
+    input attr elems
+
+return a function that receives a extra first argument
+
+    newInput FormId attr elems
+
+which is actually, behind the scenes just calling
+
+    input [ attr FormId, ...attr ] elems
+
+-}
+elementWithRequiredAttr : (id -> attr) -> (List attr -> List elem -> html) -> (Json.Encode.Value -> attr) -> (v -> Json.Encode.Value) -> id -> Maybe v -> List attr -> List elem -> html
+elementWithRequiredAttr idToAttr f property encoder id maybeDefaultValue =
+    \attrs elems -> f (idToAttr id :: maybeProperty property encoder maybeDefaultValue ++ attrs) elems
+
+
+maybeProperty : (Json.Encode.Value -> attr) -> (v -> Json.Encode.Value) -> Maybe v -> List attr
+maybeProperty property encoder maybeDefaultValue =
+    case maybeDefaultValue of
+        Nothing ->
+            []
+
+        Just v ->
+            [ property (encoder v) ]

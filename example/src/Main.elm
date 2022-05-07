@@ -3,13 +3,14 @@ module Main exposing (..)
 import Browser
 import Dict exposing (Dict)
 import Hex
-import Html exposing (Html, a, br, button, code, div, form, h3, h4, input, label, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
+import Html exposing (Html, a, br, button, code, div, form, h3, h4, hr, input, label, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
 import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, property, style, target, type_, value)
 import Html.Events exposing (on, onClick)
 import Html.Keyed
 import Iso8601
 import Json.Decode
 import Json.Encode
+import MyHtml
 import NativeForm
 import Process
 import Task
@@ -214,6 +215,23 @@ view model =
             , p []
                 [ label [] [ text "Input week" ]
                 , p [] [ input [ name "myweek", type_ "week" ] [] ]
+                ]
+            ]
+        , hr [] []
+        , MyHtml.form MyHtml.Form1
+            [ on "change" (Json.Decode.succeed (OnFormChange (MyHtml.stringFromFormId MyHtml.Form1)))
+            ]
+            [ p []
+                [ label []
+                    [ text "input"
+                    , p [] [ MyHtml.input MyHtml.Name (Just "hello") [] [] ]
+                    ]
+                ]
+            , p []
+                [ label []
+                    [ text "checkbox"
+                    , p [] [ MyHtml.checkbox MyHtml.Choice (Just True) [] [], text "Toggle me" ]
+                    ]
                 ]
             ]
         , div [ id "debugOutput" ]
