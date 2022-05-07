@@ -533,51 +533,15 @@ parseDontValidate tz list =
             NativeForm.valuesDict list
     in
     Ok ParsedInfo
-        |> field "myselect" (toRating (Dict.get "myselect" dict))
-        |> field "myselectmulti" (toCharacteristics (Dict.get "myselectmulti" dict))
-        |> field "mycheckbox" (toHobbies (Dict.get "mycheckbox" dict))
-        |> field "mytext" (toNonEmptyString (Dict.get "mytext" dict))
-        |> field "mynumber" (toInt (Dict.get "mynumber" dict))
-        |> field "myurl" (toUrl (Dict.get "myurl" dict))
-        |> field "mycolor" (toColor (Dict.get "mycolor" dict))
-        |> field "mydate" (toTimePosix TypeDate tz (Dict.get "mydate" dict))
-        |> field "mydatetime-local" (toTimePosix TypeDateTimeLocal tz (Dict.get "mydatetime-local" dict))
-
-
-{-| Pipe friendly builder of values that accumulates errors
--}
-field :
-    comparable
-    -> Result err a
-    -> Result (Dict comparable err) (a -> b)
-    -> Result (Dict comparable err) b
-field k newresult result =
-    case ( result, newresult ) of
-        ( Err errs, Err newerrs ) ->
-            Err (Dict.insert k newerrs errs)
-
-        ( Ok _, Err newerrs ) ->
-            Err (Dict.fromList [ ( k, newerrs ) ])
-
-        ( Err errs, Ok _ ) ->
-            Err errs
-
-        ( Ok res, Ok a ) ->
-            Ok (res a)
-
-
-toNonEmptyString : Maybe (NativeForm.Value String) -> Result String String
-toNonEmptyString maybeV =
-    maybeV
-        |> Maybe.map (NativeForm.oneWithDefault "")
-        |> Maybe.withDefault ""
-        |> (\str ->
-                if String.isEmpty str then
-                    Err "cannot be empty"
-
-                else
-                    Ok str
-           )
+        |> NativeForm.field "myselect" (toRating (Dict.get "myselect" dict))
+        |> NativeForm.field "myselectmulti" (toCharacteristics (Dict.get "myselectmulti" dict))
+        |> NativeForm.field "mycheckbox" (toHobbies (Dict.get "mycheckbox" dict))
+        |> NativeForm.field "mytext" (NativeForm.toNonEmptyString (Dict.get "mytext" dict))
+        |> NativeForm.field "mynumber" (toInt (Dict.get "mynumber" dict))
+        |> NativeForm.field "myurl" (toUrl (Dict.get "myurl" dict))
+        |> NativeForm.field "mycolor" (toColor (Dict.get "mycolor" dict))
+        |> NativeForm.field "mydate" (toTimePosix TypeDate tz (Dict.get "mydate" dict))
+        |> NativeForm.field "mydatetime-local" (toTimePosix TypeDateTimeLocal tz (Dict.get "mydatetime-local" dict))
 
 
 toInt : Maybe (NativeForm.Value String) -> Result String (Maybe Int)

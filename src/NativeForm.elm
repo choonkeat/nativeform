@@ -4,6 +4,7 @@ module NativeForm exposing
     , valuesDict, valuesAppend
     , oneMap, oneWithDefault
     , manyMap, manyWithDefault
+    , field, toNonEmptyString
     )
 
 {-|
@@ -41,6 +42,13 @@ Example usage
             |> Result.fromMaybe "invalid hobby"
 
 @docs manyMap, manyWithDefault
+
+
+## Parsing form values into desired types
+
+@docs field, toNonEmptyString
+
+See [example/src/Main.elm](https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm) for more functions
 
 -}
 
@@ -402,3 +410,64 @@ decodeInput =
     Json.Decode.map2 Tuple.pair
         (Json.Decode.field "name" Json.Decode.string)
         (Json.Decode.field "value" Json.Decode.string)
+
+
+
+--
+
+
+{-| Pipe friendly builder of values that accumulates errors. Useful for writing
+your `parseDontValidate` functions
+
+    parseDontValidate : Time.Zone -> List ( String, NativeForm.Value String ) -> Result Errors ParsedInfo
+    parseDontValidate tz list =
+        let
+            dict =
+                NativeForm.valuesDict list
+        in
+        Ok ParsedInfo
+            |> field "myselect" (toRating (Dict.get "myselect" dict))
+            |> field "myselectmulti" (toCharacteristics (Dict.get "myselectmulti" dict))
+            |> field "mycheckbox" (toHobbies (Dict.get "mycheckbox" dict))
+            |> field "mytext" (toNonEmptyString (Dict.get "mytext" dict))
+            |> field "mynumber" (toInt (Dict.get "mynumber" dict))
+            |> field "myurl" (toUrl (Dict.get "myurl" dict))
+            |> field "mycolor" (toColor (Dict.get "mycolor" dict))
+            |> field "mydate" (toTimePosix TypeDate tz (Dict.get "mydate" dict))
+            |> field "mydatetime-local" (toTimePosix TypeDateTimeLocal tz (Dict.get "mydatetime-local" dict))
+
+-}
+field :
+    comparable
+    -> Result err a
+    -> Result (Dict comparable err) (a -> b)
+    -> Result (Dict comparable err) b
+field k newresult result =
+    case ( result, newresult ) of
+        ( Err errs, Err newerrs ) ->
+            Err (Dict.insert k newerrs errs)
+
+        ( Ok _, Err newerrs ) ->
+            Err (Dict.fromList [ ( k, newerrs ) ])
+
+        ( Err errs, Ok _ ) ->
+            Err errs
+
+        ( Ok res, Ok a ) ->
+            Ok (res a)
+
+
+{-| parse a form field value into a String
+-}
+toNonEmptyString : Maybe (Value String) -> Result String String
+toNonEmptyString maybeV =
+    maybeV
+        |> Maybe.map (oneWithDefault "")
+        |> Maybe.withDefault ""
+        |> (\str ->
+                if String.isEmpty str then
+                    Err "cannot be empty"
+
+                else
+                    Ok (String.trim str)
+           )
