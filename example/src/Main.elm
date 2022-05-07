@@ -58,8 +58,7 @@ init flags =
 view : Model -> Html Msg
 view model =
     div []
-        [ h3 [] [ text "Input" ]
-        , span [ class "desktop-hint" ] [ text "output is below" ]
+        [ h3 [] [ text "Input", span [ class "desktop-hint" ] [ text "(output is below)" ] ]
         , form
             [ -- 1.
               -- this `id` must be set in order for `NativeForm.decoder`
@@ -195,13 +194,13 @@ view model =
             , p []
                 [ text "This form is managed by Elm with only "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L30-L31"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L34-L35"
                     , target "_blank"
                     ]
                     [ code [] [ text "type Msg = OnFormChange String" ] ]
                 , text ". And happens to be triggered by "
                 , a
-                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L68"
+                    [ href "https://github.com/choonkeat/nativeform/blob/main/example/src/Main.elm#L75"
                     , target "_blank"
                     ]
                     [ code [] [ text "form [ on \"change\" ... ]" ] ]

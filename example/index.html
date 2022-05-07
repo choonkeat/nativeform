@@ -33,9 +33,11 @@
         }
 
         .desktop-hint {
-            display: block;
+            display: inline;
             font-size: small;
-            margin-bottom: 1rem;
+            font-style: italic;
+            font-weight: normal;
+            margin-left: 0.75rem;
         }
         @media screen and (min-width: 768px) {
             .desktop-hint {
@@ -46,6 +48,8 @@
                 top: 2rem;
                 right: 5rem;
                 width: 50%;
+                max-height: 95vh;
+                overflow-y: scroll;
             }
         }
 
