@@ -3,13 +3,15 @@ module Main exposing (..)
 import Browser
 import Dict exposing (Dict)
 import Hex
-import Html exposing (Html, a, br, code, div, form, h3, h4, input, label, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
-import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, property, target, type_, value)
+import Html exposing (Html, a, br, button, code, div, form, h3, h4, input, label, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
+import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, property, style, target, type_, value)
 import Html.Events exposing (on, onClick)
+import Html.Keyed
 import Iso8601
 import Json.Decode
 import Json.Encode
 import NativeForm
+import Process
 import Task
 import Time
 import Url
@@ -24,12 +26,16 @@ type alias Model =
     { documentForms : Json.Encode.Value
     , decodedForm : List ( String, NativeForm.Value String )
     , tz : Time.Zone
+    , mycheckboxAll : { count : Int, maybeBool : Maybe Bool }
+    , myselectmultiAll : { count : Int, maybeBool : Maybe Bool }
     }
 
 
 type Msg
     = OnFormChange String
     | GotTimezone Time.Zone
+    | MyCheckAll Bool
+    | MySelectAll Bool
 
 
 main : Program Flags Model Msg
@@ -47,6 +53,8 @@ init flags =
     ( { documentForms = flags.documentForms
       , decodedForm = []
       , tz = Time.utc
+      , mycheckboxAll = { count = 0, maybeBool = Nothing }
+      , myselectmultiAll = { count = 0, maybeBool = Nothing }
       }
     , Cmd.batch
         [ Task.perform GotTimezone Time.here
@@ -82,20 +90,39 @@ view model =
                 ]
             , p []
                 [ label [] [ text "Select multiple" ]
-                , p []
-                    [ select [ name "myselectmulti", multiple True ]
-                        [ option [] [ text "Pure" ]
-                        , option [] [ text "Type" ]
-                        , option [] [ text "Functional" ]
-                        ]
+                , Html.Keyed.node "div"
+                    []
+                    [ ( String.fromInt model.myselectmultiAll.count
+                      , p []
+                            [ select [ name "myselectmulti", multiple True ]
+                                [ option [ defaultSelected (Maybe.withDefault False model.myselectmultiAll.maybeBool) ] [ text "Pure" ]
+                                , option [ defaultSelected (Maybe.withDefault False model.myselectmultiAll.maybeBool) ] [ text "Type" ]
+                                , option [ defaultSelected (Maybe.withDefault False model.myselectmultiAll.maybeBool) ] [ text "Functional" ]
+                                ]
+                            , div []
+                                [ button [ onClick (MySelectAll True), type_ "button", style "font-size" "small" ] [ text "Select all" ]
+                                , text " "
+                                , button [ onClick (MySelectAll False), type_ "button", style "font-size" "small" ] [ text "Select none" ]
+                                ]
+                            ]
+                      )
                     ]
                 ]
             , p []
                 [ label [ class "required" ] [ text "Input checkbox" ]
-                , p []
-                    [ label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Soccer" ] [], text "Soccer" ]
-                    , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Basketball" ] [], text "Basketball" ]
-                    , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Crochet", defaultChecked True ] [], text "Crochet" ]
+                , Html.Keyed.node "div"
+                    []
+                    [ ( String.fromInt model.mycheckboxAll.count
+                      , p
+                            []
+                            [ label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Soccer", defaultChecked (Maybe.withDefault False model.mycheckboxAll.maybeBool) ] [], text "Soccer" ]
+                            , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Basketball", defaultChecked (Maybe.withDefault False model.mycheckboxAll.maybeBool) ] [], text "Basketball" ]
+                            , label [ class "checkbox" ] [ input [ name "mycheckbox", type_ "checkbox", value "Crochet", defaultChecked (Maybe.withDefault True model.mycheckboxAll.maybeBool) ] [], text "Crochet" ]
+                            , button [ onClick (MyCheckAll True), type_ "button", style "font-size" "small" ] [ text "Select all" ]
+                            , text " "
+                            , button [ onClick (MyCheckAll False), type_ "button", style "font-size" "small" ] [ text "Select none" ]
+                            ]
+                      )
                     ]
                 ]
             , p []
@@ -284,6 +311,38 @@ update msg model =
         GotTimezone tz ->
             ( { model | tz = tz }
             , Cmd.none
+            )
+
+        MyCheckAll bool ->
+            ( { model
+                | mycheckboxAll =
+                    { maybeBool = Just bool
+
+                    -- Important to always update `count`, otherwise when
+                    -- 1. user clicks "check none"
+                    -- 2. user checks some checkboxes
+                    -- 3. user clicks "check none" again
+                    -- since Html.Keyed in (1) and (2) is the same, nothing will appear to happen
+                    , count = model.mycheckboxAll.count + 1
+                    }
+              }
+            , Process.sleep 50
+                -- Since `mycheckboxAll` only affects dom tree structure
+                -- We have to trigger OnFormChange after `view` has taken place
+                |> Task.map (always "form123")
+                |> Task.perform OnFormChange
+            )
+
+        MySelectAll bool ->
+            ( { model
+                | myselectmultiAll =
+                    { maybeBool = Just bool
+                    , count = model.myselectmultiAll.count + 1
+                    }
+              }
+            , Process.sleep 50
+                |> Task.map (always "form123")
+                |> Task.perform OnFormChange
             )
 
 
@@ -590,3 +649,8 @@ defaultValue str =
 defaultChecked : Bool -> Html.Attribute msg
 defaultChecked bool =
     property "defaultChecked" (Json.Encode.bool bool)
+
+
+defaultSelected : Bool -> Html.Attribute msg
+defaultSelected bool =
+    property "defaultSelected" (Json.Encode.bool bool)
