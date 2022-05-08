@@ -459,7 +459,7 @@ type alias CustomizedHtml formid fieldname attr elems =
     }
 
 
-{-| Given a set of helpers to build html elements, e.g. `input`, \`select
+{-| Given a set of helpers to build html elements, e.g. `input`, `select`
 return a different set of helpers to build html elements but with the
 concept of FormId, FieldName, default values, etc
 -}
@@ -516,24 +516,6 @@ buildCustomizedHtml html enums =
             html.select
                 (enums.fieldNameAttr name :: attrs)
     }
-
-
-{-| Given a function that works like
-
-    input attr elems
-
-return a function that receives a extra first argument
-
-    newInput FormId attr elems
-
-which is actually, behind the scenes just calling
-
-    input [ attr FormId, ...attr ] elems
-
--}
-elementWithRequiredAttr : (id -> attr) -> (List attr -> List elem -> html) -> (Json.Encode.Value -> attr) -> (v -> Json.Encode.Value) -> id -> Maybe v -> List attr -> List elem -> html
-elementWithRequiredAttr idToAttr f property encoder id maybeDefaultValue =
-    \attrs elems -> f (idToAttr id :: maybeProperty property encoder maybeDefaultValue ++ attrs) elems
 
 
 maybeProperty : (Json.Encode.Value -> attr) -> (v -> Json.Encode.Value) -> Maybe v -> List attr

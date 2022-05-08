@@ -12,6 +12,13 @@ module MyHtml exposing
     , textarea
     )
 
+{-| Having to create a file like this to support each `form`... is quite the boilerplate
+
+The "only thing" this provides is that applications use a "nicer api" that guides
+programmer to provide a Custom Type for `form[id]`, `input[name]`, and also default values
+
+-}
+
 import Html
 import Html.Attributes
 import Json.Encode
