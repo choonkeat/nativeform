@@ -3,7 +3,7 @@ module Main exposing (..)
 import Browser
 import Dict exposing (Dict)
 import Hex
-import Html exposing (Html, a, br, button, code, div, form, h3, h4, input, label, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
+import Html exposing (Html, a, br, button, code, div, fieldset, form, h3, h4, input, label, legend, node, option, p, pre, select, span, table, td, text, textarea, th, thead, tr)
 import Html.Attributes exposing (attribute, class, href, id, max, min, multiple, name, placeholder, property, style, target, type_, value)
 import Html.Events exposing (on, onClick)
 import Html.Keyed
@@ -203,17 +203,23 @@ view model =
                 [ label [] [ text "Input month" ]
                 , p [] [ input [ name "mymonth", type_ "month" ] [] ]
                 ]
-            , p []
-                [ label [] [ text "Input password" ]
-                , p [] [ input [ name "mypassword", type_ "password" ] [] ]
-                ]
-            , p []
-                [ label [] [ text "Input time" ]
-                , p [] [ input [ name "mytime", type_ "time" ] [] ]
-                ]
-            , p []
-                [ label [] [ text "Input week" ]
-                , p [] [ input [ name "myweek", type_ "week" ] [] ]
+            , fieldset []
+                [ legend [] [ text "Fieldset1" ]
+                , p []
+                    [ label [] [ text "Input password" ]
+                    , p [] [ input [ name "mypassword", type_ "password" ] [] ]
+                    ]
+                , fieldset []
+                    [ legend [] [ text "Fieldset2" ]
+                    , p []
+                        [ label [] [ text "Input time" ]
+                        , p [] [ input [ name "mytime", type_ "time" ] [] ]
+                        ]
+                    , p []
+                        [ label [] [ text "Input week" ]
+                        , p [] [ input [ name "myweek", type_ "week" ] [] ]
+                        ]
+                    ]
                 ]
             ]
         , div [ id "debugOutput" ]

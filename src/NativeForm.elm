@@ -317,7 +317,50 @@ decodeFormElement index =
             |> Json.Decode.map (List.map (Tuple.mapSecond OneValue))
         , Json.Decode.field (String.fromInt index) decodeInput
             |> Json.Decode.map (Tuple.mapSecond OneValue >> List.singleton)
+        , Json.Decode.field (String.fromInt index) decodeFieldset
         ]
+
+
+{-| Actually `fieldset.elements` works like `forms.form123.elements`: you can decode
+the fields enclosed in the `<fieldset>`
+
+However, those form fields _already exist alongside_ `fieldset` itself. e.g.
+
+        document
+        └── forms
+            └── form123
+                ├── input1
+                ├── fieldset2
+                │   ├── input21
+                │   ├── input22
+                │   └── fieldset3
+                │       └── input231
+                ├── input21
+                ├── input22
+                └── input231
+
+So, we can just ignore `fieldset` during decoding
+
+        document
+        └── forms
+            └── form123
+                ├── input1
+                ├── input21
+                ├── input22
+                └── input231
+
+-}
+decodeFieldset : Json.Decode.Decoder (List a)
+decodeFieldset =
+    Json.Decode.field "nodeName" Json.Decode.string
+        |> Json.Decode.andThen
+            (\nodeName ->
+                if String.toUpper nodeName == "FIELDSET" then
+                    Json.Decode.succeed []
+
+                else
+                    Json.Decode.fail ("Expecting FIELDSET but got " ++ nodeName)
+            )
 
 
 decodeMultiSelect : Json.Decode.Decoder ( String, List String )
