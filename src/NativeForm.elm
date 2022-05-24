@@ -329,25 +329,29 @@ However, those form fields _already exist alongside_ `fieldset` itself. e.g.
         document
         └── forms
             └── form123
-                ├── input1
-                ├── fieldset2
-                │   ├── input21
-                │   ├── input22
-                │   └── fieldset3
-                │       └── input231
-                ├── input21
-                ├── input22
-                └── input231
+                └── elements
+                    ├── input1
+                    ├── fieldset2
+                    │   └── elements
+                    │       ├── input21
+                    │       ├── input22
+                    │       └── fieldset3
+                    │           └── elements
+                    │               └── input231
+                    ├── input21
+                    ├── input22
+                    └── input231
 
 So, we can just ignore `fieldset` during decoding
 
         document
         └── forms
             └── form123
-                ├── input1
-                ├── input21
-                ├── input22
-                └── input231
+                └── elements
+                    ├── input1
+                    ├── input21
+                    ├── input22
+                    └── input231
 
 -}
 decodeFieldset : Json.Decode.Decoder (List a)
