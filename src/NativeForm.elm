@@ -89,11 +89,12 @@ oneMap f value =
             ManyValues []
 
 
-{-|
+{-| If there's only 1 occurrence of the field, we'd have decoded it as OneValue.
+But semantically, we want to treat it as ManyValues of 1 item when we `manyMap`
 
     OneValue 3
     |> manyMap ((++) [ 2 ])
-    --> ManyValues []
+    --> ManyValues [ 2, 3 ]
 
     ManyValues [ 3 ]
     |> manyMap ((++) [ 2 ])
@@ -103,8 +104,8 @@ oneMap f value =
 manyMap : (List a -> List b) -> Value a -> Value b
 manyMap f value =
     case value of
-        OneValue _ ->
-            ManyValues []
+        OneValue a ->
+            ManyValues (f [ a ])
 
         ManyValues list ->
             ManyValues (f list)
